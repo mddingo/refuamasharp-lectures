@@ -104,6 +104,7 @@
         const grid = document.getElementById("lectureGrid");
         grid.innerHTML = "";
         rows.slice(1).forEach((row) => {
+          console.log("Col B raw:", row.c[1]);
           if (!row.c || !row.c[1]) return;
 
           const dateCell = row.c[0];
