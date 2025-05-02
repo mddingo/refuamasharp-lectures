@@ -4,12 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <title>הרצאות מוקלטות - משר"פ</title>
+  <script src="https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js"></script>
+  <link href="https://unpkg.com/ag-grid-community/styles/ag-grid.css" rel="stylesheet" />
+  <link href="https://unpkg.com/ag-grid-community/styles/ag-theme-alpine.css" rel="stylesheet" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
       padding: 20px;
-      margin: 0;
+      background-color: #f4f4f4;
     }
     header {
       display: flex;
@@ -33,45 +35,14 @@
       font-weight: bold;
       text-decoration: none;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .card img {
+    .ag-theme-alpine {
+      height: 750px;
       width: 100%;
-      height: 160px;
-      object-fit: cover;
-      background-color: #ddd;
+      direction: rtl;
     }
-    .card-content {
-      padding: 15px;
-    }
-    .card h3 {
-      margin: 0 0 10px;
-      font-size: 16px;
-    }
-    .card p {
-      margin: 4px 0;
-      font-size: 14px;
-    }
-    .card a.button {
-      margin-top: 10px;
-      display: inline-block;
-      padding: 8px 12px;
-      background: #0077cc;
-      color: white;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 14px;
+    .thumbnail {
+      width: 100px;
+      height: auto;
     }
   </style>
 </head>
@@ -81,17 +52,18 @@
     <img src="לוגו משרפ.png" alt="לוגו משרפ">
   </header>
 
-  <div class="zoom-link">
-    📌 <strong>קישור קבוע להרצאות זום:</strong>
-    <a href="https://zoom.us/j/94648693344?pwd=MXgwRS9XRkNYcksyMEIxNWUzRk9XZz09" target="_blank">לחץ כאן להצטרפות</a>
+  <div class="zoom-link" id="zoomLink">
+    🔄 טוען קישור זום קבוע...
   </div>
 
-  <div class="grid" id="lectureGrid"></div>
+  <select id="pageSizeSelector" style="margin: 10px;"></select>
+  <div id="myGrid" class="ag-theme-alpine"></div>
 
   <script>
     const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
     const sheetName = 'Sheet1';
     const base = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${sheetName}`;
+    const hyperlinkRegex = /HYPERLINK\("([^"]+)"/;
 
     function extractDriveId(link) {
       const match = link.match(/\/d\/([a-zA-Z0-9_-]+)\/view/);
@@ -102,11 +74,19 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substr(47).slice(0, -2));
-        const hyperlinkRegex = /HYPERLINK\("([^"]+)"/;
 
-        const grid = document.getElementById('lectureGrid');
-        json.table.rows.forEach(row => {
-          const date = row.c[0]?.v || '';
+        // ✅ Set Zoom link from top row
+        const zoomRaw = json.table.rows[0]?.c[0]?.f || "";
+        const zoomMatch = zoomRaw.match(/HYPERLINK\("([^"]+)"/);
+        const zoomLink = zoomMatch ? zoomMatch[1] : null;
+        document.getElementById("zoomLink").innerHTML = zoomLink
+          ? `📌 <strong>קישור קבוע להרצאות זום:</strong> <a href="${zoomLink}" target="_blank">לחץ כאן להצטרפות</a>`
+          : '❌ קישור קבוע לא נמצא';
+
+        const rows = json.table.rows.slice(2).map(row => {
+          const rawDate = row.c[0]?.v || '';
+          const dateObj = new Date(rawDate);
+          const date = isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleDateString("he-IL");
           const title = row.c[1]?.v || '';
           const lecturer = row.c[2]?.v || '';
           const recorded = row.c[3]?.v ? true : false;
@@ -114,25 +94,70 @@
           const link = recorded && hyperlinkRegex.test(fField)
             ? fField.match(hyperlinkRegex)[1]
             : null;
-
           const driveId = link ? extractDriveId(link) : null;
-          const thumbnail = driveId ? `https://drive.google.com/thumbnail?id=${driveId}` : 'https://via.placeholder.com/320x180?text=No+Preview';
+          const thumbnail = driveId
+            ? `https://drive.google.com/thumbnail?id=${driveId}`
+            : 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Video_icon2.svg/120px-Video_icon2.svg.png';
 
-          if (title && date && lecturer) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-              <img src="${thumbnail}" alt="Thumbnail">
-              <div class="card-content">
-                <h3>${title}</h3>
-                <p>📅 ${date}</p>
-                <p>👨‍⚕️ ${lecturer}</p>
-                ${link ? `<a class="button" href="${link}" target="_blank">צפה בהרצאה</a>` : ''}
-              </div>
-            `;
-            grid.appendChild(card);
-          }
+          return { date, title, lecturer, recorded, link, thumbnail };
         });
+
+        const gridOptions = {
+          columnDefs: [
+            { headerName: 'תאריך', field: 'date', filter: true, sortable: true, width: 130 },
+            {
+              headerName: 'תמונה',
+              field: 'thumbnail',
+              width: 120,
+              cellRenderer: params =>
+                `<img src="${params.value}" class="thumbnail" alt="thumbnail">`
+            },
+            {
+              headerName: 'נושא הרצאה',
+              field: 'title',
+              flex: 2,
+              cellRenderer: params =>
+                params.data.link
+                  ? `<a href="${params.data.link}" target="_blank">${params.value}</a>`
+                  : params.value
+            },
+            { headerName: 'שם מרצה', field: 'lecturer', flex: 1 },
+            {
+              headerName: 'צפייה',
+              field: 'link',
+              width: 100,
+              cellRenderer: params =>
+                params.value ? `<a href="${params.value}" target="_blank">🎥</a>` : '—'
+            }
+          ],
+          rowData: rows,
+          pagination: true,
+          paginationPageSize: 20,
+          defaultColDef: {
+            resizable: true,
+            filter: true,
+            sortable: true
+          },
+          onGridReady: (params) => {
+            const selector = document.getElementById('pageSizeSelector');
+            [20, 40, 100].forEach(size => {
+              const opt = document.createElement('option');
+              opt.value = size;
+              opt.text = `הצג ${size} שורות`;
+              selector.appendChild(opt);
+            });
+            selector.value = 20;
+            selector.addEventListener('change', e => {
+              params.api.paginationSetPageSize(Number(e.target.value));
+            });
+          },
+          localeText: {
+            noRowsToShow: 'אין שורות להצגה',
+            searchOoo: 'חיפוש...',
+          }
+        };
+
+        new agGrid.Grid(document.getElementById('myGrid'), gridOptions);
       });
   </script>
 </body>
