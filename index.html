@@ -2,146 +2,33 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>הרצאות מוקלטות - משר"פ</title>
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 10px;
-    }
-    header img {
-      height: 90px;
-    }
-    h1 {
-      font-size: 32px;
-      color: #004d66;
-      margin: 0;
-      text-align: center;
-    }
-    .zoom-link {
-      text-align: center;
-      font-size: 16px;
-      margin: 10px 0 30px;
-    }
-    .zoom-link a {
-      color: #0077cc;
-      font-weight: bold;
-      text-decoration: none;
-    }
-    .controls {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.2s ease;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-    }
-    .card img.thumbnail {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-    }
-    .card-content {
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: bold;
-    }
-    .card-date,
-    .card-lecturer {
-      font-size: 14px;
-      color: #333;
-    }
-    .card-icons {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-    .card-icons span,
-    .card-icons a {
-      font-size: 20px;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    #videoModal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-    #videoModal iframe {
-      width: 80%;
-      height: 80%;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>הרצאות ענף רפואה</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-  <header>
-    <img src="לוגו משרפ.png" alt="לוגו משרפ" />
-    <h1>הרצאות מוקלטות - משר"פ</h1>
-  </header>
-
-  <div class="zoom-link" id="zoomLink">🔄 טוען קישור זום קבוע...</div>
-
-  <div class="controls">
-    <label for="cardCount">הצג:</label>
-    <select id="cardCount">
-      <option value="20">20 הרצאות</option>
-      <option value="40">40 הרצאות</option>
-      <option value="100">100 הרצאות</option>
-      <option value="all">הכול</option>
-    </select>
-  </div>
-
-  <div class="grid" id="lectureGrid"></div>
-
-  <div id="videoModal" onclick="this.style.display='none'">
-    <iframe id="videoFrame" frameborder="0" allowfullscreen></iframe>
-  </div>
+  <div id="lectureGrid"></div>
 
   <script>
     const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
     const base = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=Sheet1`;
-    const regex = /HYPERLINK\("([^"]+)"/;
-    const grid = document.getElementById("lectureGrid");
-    const videoModal = document.getElementById("videoModal");
-    const videoFrame = document.getElementById("videoFrame");
 
-    function extractDriveId(url) {
-      const m = url.match(/\/file\/d\/([\w-]+)\//);
-      return m ? m[1] : null;
+    function formatDate(dateVal) {
+      if (typeof dateVal === 'string') {
+        const parts = dateVal.split(/[-/]/);
+        if (parts.length === 3) {
+          const [y, m, d] = parts[0].length === 4 ? parts : parts.reverse();
+          return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+        }
+      } else if (typeof dateVal === 'number') {
+        const baseDate = new Date(Date.UTC(1899, 11, 30));
+        baseDate.setUTCDate(baseDate.getUTCDate() + dateVal);
+        const d = baseDate.getUTCDate().toString().padStart(2, '0');
+        const m = (baseDate.getUTCMonth() + 1).toString().padStart(2, '0');
+        const y = baseDate.getUTCFullYear();
+        return `${d}-${m}-${y}`;
+      }
+      return '';
     }
 
     fetch(base)
@@ -149,62 +36,15 @@
       .then(text => {
         const json = JSON.parse(text.substr(47).slice(0, -2));
         const rows = json.table.rows;
-        const zoomRaw = rows[0]?.c[0]?.f || "";
-        const zoomMatch = zoomRaw.match(regex);
-        const zoomLink = zoomMatch ? zoomMatch[1] : null;
-
-        document.getElementById("zoomLink").innerHTML = zoomLink
-          ? `📌 <strong>קישור קבוע לזום:</strong> <a href="${zoomLink}" target="_blank">לחץ כאן להצטרפות</a>`
-          : '❌ קישור קבוע לא נמצא';
-
-        const data = rows.slice(2).map(row => {
+        const container = document.getElementById('lectureGrid');
+        rows.slice(2).forEach(row => {
           const dateVal = row.c[0]?.v;
-          const date = dateVal ? new Date(dateVal).toLocaleDateString('he-IL') : '';
-          const title = row.c[1]?.v || '';
-          const lecturer = row.c[2]?.v || '';
-          const recorded = row.c[3]?.v ? true : false;
-          const fField = row.c[1]?.f || '';
-          const link = regex.test(fField) ? fField.match(regex)[1] : null;
-          const driveId = link ? extractDriveId(link) : null;
-          const thumbnail = driveId
-            ? `https://drive.google.com/thumbnail?id=${driveId}`
-            : 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Video_icon2.svg/320px-Video_icon2.svg.png';
-          return { title, date, lecturer, recorded, link, thumbnail, driveId };
+          const date = formatDate(dateVal);
+          const div = document.createElement('div');
+          div.textContent = '📅 ' + date;
+          container.appendChild(div);
         });
-
-        function renderCards(limit) {
-          grid.innerHTML = '';
-          const items = limit === 'all' ? data : data.slice(0, limit);
-          items.forEach(({ title, date, lecturer, recorded, link, thumbnail, driveId }) => {
-            const card = document.createElement("div");
-            card.className = "card";
-            card.innerHTML = `
-              <img class="thumbnail" src="${thumbnail}" alt="תצוגה">
-              <div class="card-content">
-                <div class="card-title">${title}</div>
-                <div class="card-date">📅 ${date}</div>
-                <div class="card-lecturer">👨‍⚕️ ${lecturer}</div>
-                <div class="card-icons">
-                  ${
-                    recorded && driveId
-                      ? `<a title="צפייה" onclick="event.stopPropagation(); showVideo('${driveId}')">👁️</a>`
-                      : '<span title="אין הקלטה">❌</span>'
-                  }
-                </div>
-              </div>
-            `;
-            grid.appendChild(card);
-          });
-        }
-
-        renderCards(20);
-        document.getElementById("cardCount").onchange = e => renderCards(e.target.value);
       });
-
-    function showVideo(id) {
-      videoFrame.src = `https://drive.google.com/file/d/${id}/preview`;
-      videoModal.style.display = 'flex';
-    }
   </script>
 </body>
 </html>
