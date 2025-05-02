@@ -17,7 +17,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     header img {
       height: 60px;
@@ -30,8 +30,14 @@
       width: 100%;
       direction: rtl;
     }
-    .ag-paging-panel {
-      direction: ltr;
+    .zoom-link {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .zoom-link a {
+      color: #0077cc;
+      font-weight: bold;
+      text-decoration: none;
     }
   </style>
 </head>
@@ -40,6 +46,11 @@
     <h1>הרצאות מוקלטות - משר"פ</h1>
     <img src="לוגו משרפ.png" alt="לוגו משרפ">
   </header>
+
+  <div class="zoom-link">
+    📌 <strong>קישור קבוע להרצאות זום:</strong>
+    <a href="https://zoom.us/j/1234567890" target="_blank">לחץ כאן להצטרפות</a>
+  </div>
 
   <select id="pageSizeSelector" style="margin: 10px;"></select>
   <div id="myGrid" class="ag-theme-alpine"></div>
@@ -59,7 +70,7 @@
           const lecturer = row.c[2]?.v || '';
           const recorded = row.c[3]?.v ? true : false;
           const link = recorded && row.c[1] && typeof row.c[1].f === 'string'
-            ? row.c[1].f.match(/https?:\/\/[^\s"]+/)?.[0]
+            ? row.c[1].f.match(/HYPERLINK\("([^"]+)"/)?.[1]
             : null;
           return { date, title, lecturer, recorded, link };
         });
