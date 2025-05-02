@@ -119,7 +119,8 @@
 
           const topic = row.c[1]?.v || "";
           const lecturer = row.c[2]?.v || "";
-          const videoLink = row.c[1]?.f ? row.c[1].f.match(/https[^"\)]+/)?.[0] : null;
+          const formula = row.c[1]?.f || "";
+const videoLink = formula.includes("HYPERLINK") ? formula.match(/"(https[^"]+)"/)?.[1] : null;
 
           const card = document.createElement("div");
           card.className = "card";
