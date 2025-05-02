@@ -62,7 +62,7 @@
             title,
             lecturer,
             recorded,
-            link: recorded ? row.c[1].f.match(/https?:\/\/[^\s"]+/)?.[0] : null
+            link: recorded && row.c[1]?.f ? row.c[1].f.match(/https?:\/\/[^\s"]+/)?.[0] : null
           };
         });
 
