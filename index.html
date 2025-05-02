@@ -129,9 +129,9 @@
     </select>
   </div>
 
-  <div class="grid" id="lectureGrid">
+  <div class="grid" id="lectureGrid"><!-- כרטיסים יטענו כאן דינמית -->
     <!-- Static card example -->
-    <div class="lecture-card">
+    <div style="display:none">
       <img class="thumbnail" src="https://drive.google.com/thumbnail?id=1ALPJUU2XfRL8HU6xpIY6pahPSifY-GQz" alt="תמונה ממוזערת">
       <div class="card-content">
         <div class="card-title">אבחנה מבדלת - לפעמים זו פתולוגיה דנטאלית</div>
@@ -182,7 +182,7 @@
         const data = rows.slice(2).map(row => {
           const dateVal = row.c[0]?.v;
           const dateObj = new Date(dateVal);
-          const date = !isNaN(dateObj) ? dateObj.toLocaleDateString('he-IL') : '';
+          const date = !isNaN(dateObj) ? `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth()+1).padStart(2, '0')}-${dateObj.getFullYear()}` : '';
           const title = row.c[1]?.v || '';
           const lecturer = row.c[2]?.v || '';
           const recorded = row.c[3]?.v ? true : false;
