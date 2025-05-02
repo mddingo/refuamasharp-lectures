@@ -3,11 +3,73 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>בדיקת שורות גיליון</title>
+  <title>הרצאות ענף רפואה</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      direction: rtl;
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    header img {
+      height: 80px;
+      margin-left: 20px;
+    }
+    h1 {
+      font-size: 2em;
+      margin: 0;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .title {
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-bottom: 5px;
+    }
+    .lecturer {
+      font-size: 0.9em;
+      color: #333;
+    }
+    .eye {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      font-size: 1.5em;
+      color: green;
+      cursor: pointer;
+    }
+    .no-video {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      font-size: 1.5em;
+      color: red;
+    }
+  </style>
 </head>
 <body>
-  <h1>בדיקת שליפת שורות מהגיליון</h1>
-  <pre id="output"></pre>
+  <header>
+    <img src="לוגו משרפ.png" alt="לוגו משר"פ">
+    <h1>הרצאות מוקלטות - ענף רפואה</h1>
+  </header>
+  <div class="grid" id="lectureGrid">טוען...</div>
 
   <script>
     const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
@@ -18,13 +80,42 @@
       .then(text => {
         const json = JSON.parse(text.substring(47).slice(0, -2));
         const rows = json.table.rows;
-        const output = document.getElementById("output");
-        rows.forEach((row, index) => {
-          output.innerText += `שורה ${index + 1}: ` + JSON.stringify(row.c.map(cell => cell?.v || null)) + "\n";
+        const grid = document.getElementById("lectureGrid");
+        grid.innerHTML = "";
+        rows.slice(1).forEach((row, idx) => {
+          if (!row.c || !row.c[1]) return; // must have topic
+          const topic = row.c[1]?.v || "";
+          const lecturer = row.c[2]?.v || "";
+          const videoLink = row.c[1]?.f?.includes("http") ? row.c[1].f.match(/https[^"]+/)?.[0] : null;
+
+          const card = document.createElement("div");
+          card.className = "card";
+
+          const title = document.createElement("div");
+          title.className = "title";
+          title.textContent = topic;
+          card.appendChild(title);
+
+          const lect = document.createElement("div");
+          lect.className = "lecturer";
+          lect.textContent = `מרצה: ${lecturer}`;
+          card.appendChild(lect);
+
+          if (videoLink) {
+            const eye = document.createElement("div");
+            eye.className = "eye";
+            eye.textContent = "👁️";
+            eye.onclick = () => window.open(videoLink, '_blank');
+            card.appendChild(eye);
+          } else {
+            const x = document.createElement("div");
+            x.className = "no-video";
+            x.textContent = "❌";
+            card.appendChild(x);
+          }
+
+          grid.appendChild(card);
         });
-      })
-      .catch(err => {
-        document.getElementById("output").innerText = "שגיאה: " + err.message;
       });
   </script>
 </body>
