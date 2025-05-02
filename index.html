@@ -38,8 +38,23 @@
         const rows = json.table.rows;
         const container = document.getElementById('lectureGrid');
         rows.slice(2).forEach(row => {
-          const dateVal = row.c[0]?.v;
+          const dateCell = row.c[0];
+const dateVal = dateCell?.f || dateCell?.v || '';
 let date = '';
+if (typeof dateVal === 'string') {
+  const parts = dateVal.split(/[-/]/);
+  if (parts.length === 3) {
+    const [y, m, d] = parts[0].length === 4 ? parts : parts.reverse();
+    date = `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+  }
+} else if (typeof dateVal === 'number') {
+  const baseDate = new Date(Date.UTC(1899, 11, 30));
+  baseDate.setUTCDate(baseDate.getUTCDate() + dateVal);
+  const d = baseDate.getUTCDate().toString().padStart(2, '0');
+  const m = (baseDate.getUTCMonth() + 1).toString().padStart(2, '0');
+  const y = baseDate.getUTCFullYear();
+  date = `${d}-${m}-${y}`;
+}
 if (typeof dateVal === 'string') {
   const parts = dateVal.split(/[-/]/);
   if (parts.length === 3) {
