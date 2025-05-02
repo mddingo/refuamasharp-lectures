@@ -42,6 +42,30 @@
 const dateVal = dateCell?.f || dateCell?.v || '';
 let date = '';
 if (typeof dateVal === 'string') {
+  const parts = dateVal.split(/[-/]/).map(p => p.trim());
+  if (parts.length === 3) {
+    let [a, b, c] = parts;
+    if (a.length === 4) {
+      // YYYY-M-D
+      date = `${c.padStart(2, '0')}-${b.padStart(2, '0')}-${a}`;
+    } else if (c.length === 4) {
+      // D-M-YYYY
+      date = `${a.padStart(2, '0')}-${b.padStart(2, '0')}-${c}`;
+    } else {
+      // D-M-YY or similar
+      const fullYear = Number(c) > 50 ? '19' + c : '20' + c;
+      date = `${a.padStart(2, '0')}-${b.padStart(2, '0')}-${fullYear}`;
+    }
+  }
+} else if (typeof dateVal === 'number') {
+  const baseDate = new Date(Date.UTC(1899, 11, 30));
+  baseDate.setUTCDate(baseDate.getUTCDate() + dateVal);
+  const d = baseDate.getUTCDate().toString().padStart(2, '0');
+  const m = (baseDate.getUTCMonth() + 1).toString().padStart(2, '0');
+  const y = baseDate.getUTCFullYear();
+  date = `${d}-${m}-${y}`;
+}
+if (typeof dateVal === 'string') {
   const parts = dateVal.split(/[-/]/);
   if (parts.length === 3) {
     const [y, m, d] = parts[0].length === 4 ? parts : parts.reverse();
