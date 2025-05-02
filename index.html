@@ -72,6 +72,27 @@
   <div class="grid" id="lectureGrid">טוען...</div>
 
   <script>
+    function parseGoogleDate(val) {
+      const match = val.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (match) {
+        const y = match[1];
+        const m = (parseInt(match[2]) + 1).toString().padStart(2, '0');
+        const d = match[3].padStart(2, '0');
+        return `${d}-${m}-${y}`;
+      }
+      return '';
+    }
+    function normalizeDateString(str) {
+      const parts = str.includes('-') ? str.split('-') : str.split('/');
+      if (parts.length === 2) parts.push('2025');
+      if (parts.length === 3) {
+        const [d, m, y] = parts;
+        const year = y.length === 2 ? (y > 50 ? '19' + y : '20' + y) : y;
+        return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${year}`;
+      }
+      return '';
+    }
+
     const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=Sheet1`;
 
@@ -82,14 +103,30 @@
         const rows = json.table.rows;
         const grid = document.getElementById("lectureGrid");
         grid.innerHTML = "";
-        rows.slice(1).forEach((row, idx) => {
-          if (!row.c || !row.c[1]) return; // must have topic
+        rows.slice(1).forEach((row) => {
+          if (!row.c || !row.c[1]) return;
+
+          const dateCell = row.c[0];
+          let rawDate = dateCell?.f || dateCell?.v || '';
+          let date = '';
+          if (typeof rawDate === 'string') {
+            if (rawDate.includes('Date(')) {
+              date = parseGoogleDate(rawDate);
+            } else {
+              date = normalizeDateString(rawDate);
+            }
+          }
+
           const topic = row.c[1]?.v || "";
           const lecturer = row.c[2]?.v || "";
-          const videoLink = row.c[1]?.f?.includes("http") ? row.c[1].f.match(/https[^"]+/)?.[0] : null;
+          const videoLink = row.c[1]?.f?.includes("http") ? row.c[1].f.match(/https[^"']+/)?.[0] : null;
 
           const card = document.createElement("div");
           card.className = "card";
+
+          const dateDiv = document.createElement("div");
+          dateDiv.textContent = '📅 ' + date;
+          card.appendChild(dateDiv);
 
           const title = document.createElement("div");
           title.className = "title";
