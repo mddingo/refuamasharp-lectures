@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <title>הרצאות מוקלטות - משר"פ</title>
-  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css" rel="stylesheet" />
+  <script src="https://unpkg.com/ag-grid-community@28.2.1/dist/ag-grid-community.min.noStyle.js"></script>
+  <link href="https://unpkg.com/ag-grid-community@28.2.1/styles/ag-grid.css" rel="stylesheet" />
+  <link href="https://unpkg.com/ag-grid-community@28.2.1/styles/ag-theme-alpine.css" rel="stylesheet" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -161,7 +161,7 @@
           }
         };
 
-        new window.agGrid.Grid(document.getElementById('myGrid'), gridOptions);
+        new agGrid.Grid(document.getElementById('myGrid'), gridOptions);
       });
   </script>
 </body>
