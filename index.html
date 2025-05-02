@@ -2,164 +2,236 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <title>הרצאות ענף רפואה</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f7f7f7;
       direction: rtl;
       padding: 20px;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    header img {
-      height: 80px;
-      margin-left: 20px;
+      background-color: #f8f9fa;
     }
     h1 {
-      font-size: 2em;
-      margin: 0;
+      text-align: center;
     }
-    .grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
+    #zoomLink {
+      margin: 10px 0;
+      text-align: center;
+      font-size: 1.2em;
     }
     .card {
-      background: white;
-      padding: 15px;
+      border: 1px solid #ccc;
+      background-color: #fff;
       border-radius: 10px;
-      width: 300px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      position: relative;
+      padding: 15px;
+      margin: 10px;
+      width: calc(25% - 40px);
+      box-sizing: border-box;
+      display: inline-block;
+      vertical-align: top;
     }
-    .title {
+    .card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+    }
+    .card .title {
       font-weight: bold;
-      font-size: 1.1em;
-      margin-bottom: 5px;
+      margin-top: 10px;
     }
-    .lecturer {
+    .card .date, .card .lecturer {
       font-size: 0.9em;
       color: #333;
     }
-    .eye {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
+    .card .icon {
       font-size: 1.5em;
-      color: green;
-      cursor: pointer;
-    }
-    .no-video {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      font-size: 1.5em;
-      color: red;
+      margin-top: 10px;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <header>
-    <img src="לוגו משרפ.png" alt="לוגו משר"פ">
-    <h1>הרצאות מוקלטות - ענף רפואה</h1>
-  </header>
-  <div class="grid" id="lectureGrid">טוען...</div>
+  <h1>הרצאות ענף רפואה</h1>
+  <div id="zoomLink">
+    קישור קבוע לזום: <a href="#" target="_blank">כניסה לזום</a>
+  </div>
+  
+<style>
+  #filters {
+    margin: 10px 0;
+    text-align: center;
+  }
+  #filters input, #filters select {
+    margin: 5px;
+    padding: 5px;
+    font-size: 1em;
+  }
+  #videoModal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+  }
+  #videoModal iframe {
+    display: block;
+    margin: 5% auto;
+    width: 80%;
+    height: 450px;
+    background: #000;
+    border: none;
+  }
+</style>
+<div id="filters">
+  <input type="text" id="searchBox" placeholder="חפש הרצאה או מרצה...">
+  <select id="monthFilter"><option value="">חודש</option></select>
+  <select id="yearFilter"><option value="">שנה</option></select>
+</div>
+<div id="videoModal" onclick="this.style.display='none'; this.querySelector('iframe').src=''">
+  <iframe src=""></iframe>
+</div>
+
+<div id="cards"></div>
 
   <script>
-    function parseGoogleDate(val) {
-      const match = val.match(/Date\((\d+),(\d+),(\d+)\)/);
-      if (match) {
-        const y = match[1];
-        const m = (parseInt(match[2]) + 1).toString().padStart(2, '0');
-        const d = match[3].padStart(2, '0');
-        return `${d}-${m}-${y}`;
-      }
-      return '';
+    const data = [{"תאריך": "16-09-2020", "נושא": "על תסמונת פוסט קורונה", "מרצה": "דר' גיא חושן - זיהומולוג איכילוב", "מוקלט": true, "קישור": "https://drive.google.com/file/d/19_rcsXrrC0auwN44KIsi5K-Bh5BZXWqx/view?usp=sharing"}, {"תאריך": "23-09-2020", "נושא": "מניעת הריון, גלולות ותכנון משפחה", "מרצה": "דר' ורד קלייטמן רת\"ח נשים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1tDtkb5fGvVfJ_IUXqObT-gfTLx2J6tu1/view?usp=sharing"}, {"תאריך": "30-09-2020", "נושא": "המסלול המהיר לאבחון IBD", "מרצה": "דר' דאהר סלאח רת\"ח גסטרואנתרולוגיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/13PviyFCTmobdCu2EVUC5SY2zwE4QxIpj/view?usp=sharing"}, {"תאריך": "10-07-2020", "נושא": "הרצאת פיזיותרפיה בימי קורונה", "מרצה": "איגור מינץ ואוריה מורן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1YwHKNMuyBJ7T2ZSqowAJygblaNJt3b09/view?usp=sharing"}, {"תאריך": "14-10-2020", "נושא": "תזונה מבוססת ראיות ותזונה בהכשרה", "מרצה": "אירה שולמן - תזונאית ראשית", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1fDUW7YsyL3JY4_ioYlhnaHWUw1-7fX4E/view?usp=sharing"}, {"תאריך": "21-10-2020", "נושא": "מצבי חירום בכאבי גב וכתף", "מרצה": "פרופ' אהרון פיינסטון רת\"ח אורתופדיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1ijiRnQ8jjgpu8NmD2gdg9pVUibKE8zjN/view?usp=sharing"}, {"תאריך": "11-04-2020", "נושא": "קרטוקונוס", "מרצה": "דר' דן הלר רת\"ח עיניים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1vL4z-38ZAoY_1xWPvUdIH5ez_1S8eMev/view?usp=sharing"}, {"תאריך": "11-11-2020", "נושא": "צמחונות וטבעונות - כולל המענה לאוכלוסיות מיוחדות בצה\"ל", "מרצה": "אירה שולמן - תזונאית ראשית וסיגל פארן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/12lISG_3Qp_qgggezmEEyNLKePHaQ02NM/view?usp=sharing"}, {"תאריך": "18-11-2020", "נושא": "הגישה למטופל עם כאב כרוני", "מרצה": "פרופ' אהרון פיינסטון רת\"ח אורתופדיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/10Sz_qWVjEPDELfquv7qzeRrLJcEd6knF/view?usp=sharing"}, {"תאריך": "25-11-2020", "נושא": "לחץ תוך גולגולתי מוגבר", "מרצה": "דר' אסף הוניג רת\"ח נוירולוגיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1rGXg6WFPKoun7cqEoIbKmXI224uloenQ/view?usp=sharing"}, {"תאריך": "12-02-2020", "נושא": "רפואת להט\"ב", "מרצה": "דר' רונית אלעד רת\"ח רפואת משפחה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1VGa0TXDYaRYrdyMRRh-tvaJ9OrjrXK3q/view?usp=sharing"}, {"תאריך": "12-09-2020", "נושא": "מערך הדימות בצה\"ל וניהול סיכונים בהפניות לדימות", "מרצה": "ניר פופל רת\"ח דימות", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1p_o2odmyMdYwpxYuK4UpD8zqcynD0kWO/view?usp=sharing"}, {"תאריך": "23-12-2020", "נושא": "לילה לא שקט - הפרעות שינה שכיחות ברפואה צבאית", "מרצה": "דר' נועה גולדשר - רופאת משפחה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1lPv8riJ0uWCcjg62LJrthuenN-YZq5Wr/view?usp=sharing"}, {"תאריך": "30-12-2020", "נושא": "הגישה לפרכוס ראשון - כל מה שהרופא הראשוני צריך לדעת", "מרצה": "דר' אסף הוניג רת\"ח נוירולוגיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1fJcDkxcYhV02XvcsimZLALX900yhlJxU/view?usp=sharing"}, {"תאריך": "01-06-2021", "נושא": "סדנת תקשורת - סימולציות שיחות על כאב כרוני", "מרצה": "עדי דוידוביץ - משחררת מכאב", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1Bwsf0Fhfu5BrYjeX7tHhR6dPWGzuVgkl/view?usp=sharing"}, {"תאריך": "13-01-2021", "נושא": "מצבי חירום בבריאות הנפגש", "מרצה": "דר' מיכל ליפשיץ - פסיכיאטרית", "מוקלט": true, "קישור": "https://drive.google.com/file/d/15U6TCCJA98CZzZNt1R5P6nErTECiZb_d/view?usp=sharing"}, {"תאריך": "20-01-2021", "נושא": "הטיפול בהפרעות אכילה בצה\"ל", "מרצה": "אירה שולמן - תזונאית ראשית", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1w4_Sh2_DVSUHRd1G445OOE7twgbOX2pV/view?usp=sharing"}, {"תאריך": "27-01-2021", "נושא": "עמ\"ט ימי מחלה - מידע פרקטי לרופא היחידה. רפואה תעסוקתית -כל מה שרציתם לשאול ולא העזתם.", "מרצה": "דר' מורמן רוטר רת\"ח רפואה תעסוקתית", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1gEjpMtyaYQ7RcPD7Muv0wWwySI1XZ8gG/view?usp=sharing"}, {"תאריך": "02-03-2021", "נושא": "מצבים כרוניים שכיחים ברפואת עיניים וניתוחי עיניים נפוצים", "מרצה": "דר' דן הלר רת\"ח עיניים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1FR2PmV4OGxIvD7SPtc_ShaMgHoTWvZ54/view?usp=sharing"}, {"תאריך": "02-10-2021", "נושא": "מחלת תנועה - כל מה שרציתם לדעת", "מרצה": "דר' עמית גבע - ע.רמד תפקוד בים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1-h_6aFiZmmz9XxIeKMMyqs2di7foekFU/view?usp=sharing"}, {"תאריך": "17-02-2021", "נושא": "המרכז לבריאות הלוחם- מה למדנו על הלוחם הישראלי", "מרצה": "איציק אלפנט - פיזיותרפיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1b3dh5R8AlChZS7ykAQWyxg1yTiu8Esla/view?usp=sharing"}, {"תאריך": "24-02-2021", "נושא": "קרינה בלתי מייננת - מהמיטה החשמלית ועד 5G", "מרצה": "רחלי לויטס - רת\"ח קרינה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1Pmn_gE16HhRuuYzK4wD4LX8I_VfqyilZ/view?usp=sharing"}, {"תאריך": "03-03-2021", "נושא": "מתחברים למחקר - על הדרך מהתרג\"ד לפרופסורה", "מרצה": "ג'ני מוגינשטיין - ענף אקדמיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1kF69lYkS8Uc6MfKwDPyoAmzfh70nl02b/view?usp=sharing"}, {"תאריך": "03-10-2021", "נושא": "הגישה לטיפול בכאבי ראש מיגרנוטיים", "מרצה": "דר' אסף הוניג רת\"ח נוירולוגיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1VMZuIq5F5ofRFCX-bnMzU6dIieNi5NfQ/view?usp=sharing"}, {"תאריך": "17-03-2021", "נושא": "אודיו-מה?? כיצד לקרוא בדיקות שמיעה, טראומה אקוסטית ושמיעה בהיבט תעסוקתי", "מרצה": "שיר הרשקוביץ רת\"ח שמיעה ודיבור", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1mojSzBBbIBx-hrvwUdU3u1Cbfgwss-Bw/view?usp=sharing"}, {"תאריך": "24-03-2021", "נושא": "טריקים ושטיקים ב-CPR וגם מילה על מדיקליק ו-CPRGO...", "מרצה": "דר' שי הרצברגר - רמ\"ד רפואה משר\"פ", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1PSsqH0IK6sTD6OsgoMuRLV65k0W9gBHA/view?usp=sharing"}, {"תאריך": "07-04-2021", "נושא": "מקרים מתגלגלים ברפואת עיניים", "מרצה": "דר' דן הלר רת\"ח עיניים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1jc5Bt_F51J5Mvlb1JePtJXERg5HU9WRe/view?usp=sharing"}, {"תאריך": "21-04-2021", "נושא": "אנדומטריוזיס כולל סיפור מקרה", "מרצה": "דר' ורד קלייטמן רת\"ח נשים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1DZikfT0JGT6z8SEh-BJ9wcLpQvixPPIR/view?usp=sharing"}, {"תאריך": "28-04-2021", "נושא": "שאלות ותשובות - פיזיותרפיה - פרוטוקולים לשיפור התפקוד", "מרצה": "אוריה מורן - רת\"ח פיזיותרפיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1vl0LYVAJFL6HMORYeX5-sMOiIL2WJTsl/view?usp=sharing"}, {"תאריך": "05-05-2021", "נושא": "הטיפול התזונתי במחלות גסטרואינטסטינליות בצהל", "מרצה": "רויטל פרלוב - תזונאית קלינית", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1FUZaSCEqBydLZThBDGfy2zfk1JdLZoBj/view?usp=sharing"}, {"תאריך": "26-05-2021", "נושא": "חידושים בדימות ואולטראסאונד POCUS לרופאים", "מרצה": "דר' ארנון מקורי וניר פופל", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1_nKVbyezbqo65anVQ0f21z3hFSILB-wb/view?usp=sharing"}, {"תאריך": "02-06-2021", "נושא": "מקרים מתגלגלים ברפואת עיניים -חלק 2", "מרצה": "דר' דן הלר  -רת\"ח עיניים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1Snz2rFwvEAguczL5p11Uka73O4mObzNE/view?usp=sharing"}, {"תאריך": "09-06-2021", "נושא": "זה נכתב בדם - למידה מתחקירים, ובאות ואירועים חריגים", "מרצה": "מרגריטה ממדוב - רמ\"ד בטיחות הטיפול", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1KfUckgMsc-TlUmvztbyqjREVrbqedNRh/view?usp=sharing"}, {"תאריך": "16-06-2021", "נושא": "אתגרים ברפואה צבאית - למידה מקבילות", "מרצה": "דר' קרן זילכה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/179KqmtByByFhhTOMZEtlBYfcMg4XsJ9X/view?usp=sharing"}, {"תאריך": "23-06-2021", "נושא": "מענה חירום למקרי תקיפה מינית", "מרצה": "דר' ורד קלייטמן רת\"ח נשים", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1BhXYGHkj_Way5MUTdsVDxizYB4eNpGeZ/view?usp=sharing"}, {"תאריך": "27-06-2021", "נושא": "מעקב חריגים", "מרצה": "דר' רונית אלעד רת\"ח רפואת משפחה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1KjsqAlfZnCEADxEXgVrf6JqfMYlePhGo/view?usp=sharing"}, {"תאריך": "30-06-2021", "נושא": "זימון תורים בכף היד", "מרצה": "דר' יובל רן ודר' שי הרצברגר ", "מוקלט": true, "קישור": "https://drive.google.com/file/d/10f8QF5_U1ZshPr_6BJ1QEOlVqIYfmBcI/view?usp=sharing"}, {"תאריך": "07-07-2021", "נושא": "עדכונים של ענף שרפ", "מרצה": "דר' שמואל פיי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/10f8QF5_U1ZshPr_6BJ1QEOlVqIYfmBcI/view?usp=sharing"}, {"תאריך": "14-07-2021", "נושא": "חיסון HPV ותסמונת אהלר-דנלוס", "מרצה": "דר' גילית קליגון ", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1EHbLBXo_wGY992K8yIoXzSC8mq5Vkeb0/view?usp=sharing"}, {"תאריך": "21-07-2021", "נושא": "כל מה שרציתם לדעת על סטירואידים", "מרצה": "דר' עדי בלומפנלד", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1AzpMSDe42h-aAu1eelVGbcpeqwnN1Vvb/view?usp=sharing"}, {"תאריך": "04-08-2021", "נושא": "בעיות אנדוקריניות שכיחות במרפאה", "מרצה": "דר' נירית אבירן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1_mfvbZ-aLYEJr_fcrJwXCB0KZRvw5c6F/view?usp=sharing"}, {"תאריך": "18-08-2021", "נושא": "הגישה ל STDs", "מרצה": "דר' יניב אלזם", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1cvq6lvBP2wjQ09UwroYeIUucCd5ZBdmU/view?usp=sharing"}, {"תאריך": "25-08-2021", "נושא": "בירור גוש צווארי", "מרצה": "דר' גדי שלומאי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1owH80QowBfHqMjRPLPdnBezCrbgmcJRO/view?usp=sharing"}, {"תאריך": "29-09-2021", "נושא": "ניתוחים לתיקון הרפרקציה", "מרצה": "דר' ניר סורקין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1UBJBXzWMcA3l7BnV6lDmtx_zBEeQuyI7/view?usp=sharing"}, {"תאריך": "06-10-2021", "נושא": "OSA", "מרצה": "דר' נועה גולדשר - רופאת משפחה", "מוקלט": false, "קישור": NaN}, {"תאריך": "13-10-2021", "נושא": "אורטיקריה אנגיואדמה ואנפילקסיס בצהל", "מרצה": "דר' ליאת נחשון", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1bZz5WPbH3hxzPe7GGrf9tpt0RUapQ4wL/view?usp=sharing"}, {"תאריך": "20-10-2021", "נושא": "נגעים בחלל הפה", "מרצה": "דר' טליה בקר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1XOjE4q_sl6nVMM8T8hhXQlKDiJkXaeeh/view?usp=sharing"}, {"תאריך": "27-10-2021", "נושא": "הגישה להפרעה בתפקודי כבד", "מרצה": "דר' אביאל נגר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1StF90xklZA6DocR1iVz123Tvg9H4uxak/view?usp=sharing"}, {"תאריך": "10-11-2021", "נושא": "רפואת הלהטב", "מרצה": "דר' גלעד בנימיני ריבלין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1E2-1WSx5nAOz1zOLYcIeCBzkD5fcqAL6/view?usp=sharing"}, {"תאריך": "17-11-2021", "נושא": "השמנה", "מרצה": "אירה שולמן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1ay7l4RgM02VpBsCQigJcrNu1PCgQcgq7/view?usp=sharing"}, {"תאריך": "08-12-2021", "נושא": "חדשנות ברפואת שגרה", "מרצה": "דר' לוסי בלגור, דר' יובל קוצ'וק", "מוקלט": true, "קישור": "https://drive.google.com/file/d/11lPDMbbsAmM4Z3U6VTL93G9InkOetYGw/view?usp=sharing"}, {"תאריך": "15-12-2021", "נושא": "דלקות נרתיק", "מרצה": "פרופ' יעקב בורנשטיין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1FUlUZTYK5XNMqtk5PpNJF6anJdRX7h_n/view?usp=sharing"}, {"תאריך": "22-12-2021", "נושא": "הגישה לכאב באשך", "מרצה": "דר' גיל זהבי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/14qVRNmb4fb0CG6sNhRBHq5EI_TqW4CM0/view?usp=sharing"}, {"תאריך": "29-12-2021", "נושא": "אלרגיה למזון בצהל", "מרצה": "דר' ליאת נחשון", "מוקלט": true, "קישור": "https://drive.google.com/file/d/14w7UCeqi_oJW_ty5GeIrANvmaPpFCWvJ/view?usp=sharing"}, {"תאריך": "12-01-2022", "נושא": "סוכרת", "מרצה": "דר' נירית אבירן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1q0_NVicPlSBGvJm6g12D3mcTzzYmesCa/view?usp=sharing"}, {"תאריך": "26-01-2022", "נושא": "ממצאים באולטרסאונד כללי", "מרצה": "ענבל מייליאן", "מוקלט": true, "קישור": NaN}, {"תאריך": "02-02-2022", "נושא": "בדיקת סקר BRCA", "מרצה": "דר' לנה שגיא דאין", "מוקלט": true, "קישור": NaN}, {"תאריך": "09-02-2022", "נושא": "מרכז מצפים", "מרצה": "סימה נהרי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1z8mRn_SFsxRDiPAuNXUfHItAfoMvS7MI/view?usp=sharing"}, {"תאריך": "16-02-2022", "נושא": "הצילו איפה דפי", "מרצה": "ליהי קורין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1KquKb9BorDLwn3PVyZlWO47N42sRIDU2/view?usp=sharing"}, {"תאריך": "02-03-2022", "נושא": "שמנופוביה", "מרצה": "דר' לנה שגיא דאין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1o8CYlFa6l6N8_2EhPxoTNgR1eBRXH9LA/view?usp=sharing"}, {"תאריך": "09-03-2022", "נושא": "עדכוני ענף שרפ", "מרצה": "דר' שמואל פיי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1Ibl20-EE9OIxrhA_5rnUGXHkhNvF8KeP/view?usp=sharing"}, {"תאריך": "23-03-2022", "נושא": "אודיולוגיה ושימור השמע", "מרצה": "הודיה אטדגי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1ZixMo7200eiAYpnAeE6eUse3EBVPeiRT/view?usp=sharing"}, {"תאריך": "30-03-2022", "נושא": "לילות לבנים", "מרצה": "דר' נועה גולדשר - רופאת משפחה", "מוקלט": true, "קישור": NaN}, {"תאריך": "13-04-2022", "נושא": "מקרים ברפואת עיניים", "מרצה": "דר' דן הלר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1WGHdcn1tec0UeRHaujLcLROfF_rWbP3k/view?usp=sharing"}, {"תאריך": "11-05-2022", "נושא": "מסדרים את הבלאגן באגן", "מרצה": "אירה קושניר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/14C2DshAR4wp7LY64VTJMhwH20a-QUcbN/view?usp=sharing"}, {"תאריך": "25-05-2022", "נושא": "גמילה מעישון בצהל", "מרצה": "פרופ' נוויל ברקמן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1o2x0f110UJp5SfgCtj8J5mMT7Noa3akO/view?usp=sharing"}, {"תאריך": "08-06-2022", "נושא": "הגישה לאסטמה בצבא", "מרצה": "דר' יבגני גרשמן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1u241Y6qA-mD8o72lqO5-u6rbplOUAF-N/view?usp=sharing"}, {"תאריך": "13-06-2022", "נושא": "תלוש השכר", "מרצה": "מופת", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1z0aHadSvkYBHY5dsADcwqtaP_pkvSgaN/view?usp=sharing"}, {"תאריך": "15-06-2022", "נושא": "חבלות ראש", "מרצה": "דר' דנה דורון", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1-Dq3jVSkmvjlPD1SXLpczQsLnwc5igfT/view?usp=sharing"}, {"תאריך": "22-06-2022", "נושא": "Periocular and orbital trauma", "מרצה": "פרופ' מוריס ארשטיין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/16vhq2jgNby7pX6kfu4OHMLxA7r_DaQ9x/view?usp=sharing"}, {"תאריך": "29-06-2022", "נושא": "זיהומים במערכת העצבים המרכזית", "מרצה": "דר' אסף הוניג רת\"ח נוירולוגיה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1TPEH4pNy1mMoWog94KS0VoUGwANDJFnI/view?usp=sharing"}, {"תאריך": "14-07-2022", "נושא": "מודלים לאובדנות", "מרצה": "דר' כרמל קלה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1lyIsFTq7ZAzWv3nqsqhQeZxyQe_AD3yG/view?usp=sharing"}, {"תאריך": "21-07-2022", "נושא": "אנטיביוטיקה", "מרצה": "דר' נועה גולדשר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1ZcAojSDe6xTRWb-kwH6VZVH1cac1Wuwg/view?usp=sharing"}, {"תאריך": "17-08-2022", "נושא": "סחרחורת", "מרצה": "יעקב זייגר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1Ams1I-KW3pcaUWRu0md6Q0Qq5D8-zswF/view?usp=sharing"}, {"תאריך": "19-10-2022", "נושא": "גלאוקומה", "מרצה": "דר' דן הלר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1OJ8vjsb6Ao0yuN93YPgaxdShUdVP7kTY/view?usp=share_link"}, {"תאריך": "26-10-2022", "נושא": "שאלון אס", "מרצה": "דר' לוסי בלגור", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1BvI8-6TdnN_ND6YhHOMIExGMUZDbd8O3/view?usp=sharing"}, {"תאריך": "02-11-2022", "נושא": "סוגיות רפואיות בשורדות תקיפה מינית", "מרצה": "דר' אנה פדואה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1CalfFta6F15Evg8ZVg3xA-ZT1CR47tH2/view?usp=sharing"}, {"תאריך": "09-11-2022", "נושא": "תזונה ומערכת העיכול", "מרצה": "דר' דנה אינקובסקי וקכמן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1JULAKw6tb6hc4RCCPv_svqffoTnJEgai/view?usp=share_link"}, {"תאריך": "16-11-2022", "נושא": "שימור הפוריות", "מרצה": "דר' גיל פאר ניצן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1Ue1ddrGKYzrDEHqx5VAUH96k7ThL0TWU/view?usp=share_link"}, {"תאריך": "23-11-2022", "נושא": "פסיכוזה", "מרצה": "דר' ישי ניר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1iqqdQl1sBqyAEznZvfjSjFUtz5Gvh8Dn/view?usp=share_link"}, {"תאריך": "30-11-2022", "נושא": "הגישה לחולה הכפיוני", "מרצה": "דר' אראל דומני", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1VYKPpPk5ZMVNqS5-Ol-0Lvy5SzFbIf3b/view?usp=share_link"}, {"תאריך": "28-12-2022", "נושא": "כבד שומני", "מרצה": "דר' סאלח דאהר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1LQd6-DSv5b1ahEU-b26cAgCQQqjoi-Ym/view?usp=share_link"}, {"תאריך": "11-01-2023", "נושא": "הפרעות אכילה", "מרצה": "דפני בן ארוש", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1-K5cSjP33Ly2st2so0L4DiMaoB39c5Zz/view?usp=share_link"}, {"תאריך": "25-01-2023", "נושא": "ממצאים בדימות", "מרצה": "דר' יבגני גרשמן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1vExkVNgyfNts-owdT895Mc-bems6zvnY/view?usp=sharing"}, {"תאריך": "01-02-2023", "נושא": "סינקופה והפרעות קצב", "מרצה": "דר' אודי חורין", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1z5KwUkqHLyipkPG1xjonzxVMNnWjaFIH/view?usp=share_link"}, {"תאריך": "22-02-2023", "נושא": "ירידה חדה בשמיעה", "מרצה": "הודיה אטדגי", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1u_dX4HCVqBKb8txxAqkrnFoE0CXkxzWp/view?usp=share_link"}, {"תאריך": "15-03-2023", "נושא": "הגישה ליתר לחץ דם", "מרצה": "דר' נועה גולדשר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1QkQEhdOG8fLTPnx-blceC3T5K8TMWArn/view?usp=share_link"}, {"תאריך": "22-03-2023", "נושא": "סיכום משלחת ענפי זית", "מרצה": "דר' ענבל דים ודר' לידור פרץ", "מוקלט": true, "קישור": "https://drive.google.com/file/d/19o2c6hR3IX6_29hhvJPEyNrFnz-BDpfW/view?usp=share_link"}, {"תאריך": "29-03-2023", "נושא": "ועדת אתיקה וסוגיות אתיות ברפואה", "מרצה": "דר' תמיר מוריץ", "מוקלט": true, "קישור": NaN}, {"תאריך": "19-04-2023", "נושא": "הגישה למחלות אאג וראש צוואר", "מרצה": "דר' אורן זיו", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1SDKTddeyiItYI4IlyP6SbkCdJkq_wvgw/view?usp=share_link"}, {"תאריך": "03-05-2023", "נושא": "הגישה לאנמיה", "מרצה": "דר' בר ורון", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1qqmB4WPJP8q-hvKS6wN9vi1yXmTJqCPA/view?usp=share_link"}, {"תאריך": "17-05-2023", "נושא": "תרופות נוגדות דיכאון", "מרצה": "דר' כרמל קלה", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1S1wM_8oqCTfjdNOIYVtybKvAvz482orA/view?usp=sharing"}, {"תאריך": "07-06-2023", "נושא": "כולם טועים לפעמים", "מרצה": "עופר ויס", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1BXx0vun5KwYw-EPvvw4qnPd6jwDFdAXu/view?usp=drive_link"}, {"תאריך": "21-06-2023", "נושא": "עדכוני UTD", "מרצה": "סימה לבני", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1BW6KdfYxOFRizrgR81F7fqG1l0Ck9tAT/view?usp=drive_link"}, {"תאריך": "12-07-2023", "נושא": "הטיפול באטומוקסיטין", "מרצה": "דר' אראל דומני", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1KkuJTQDSFGZxoVMTDK--gw9ZwaobigUV/view?usp=sharing"}, {"תאריך": "26-07-2023", "נושא": "רפואת הפה בצה\"ל", "מרצה": "דר' טליה בקר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1kxnQFOn-9CGiu5wb4Qm2MvQY2uR3ZgG8/view?usp=drive_link"}, {"תאריך": "09-08-2023", "נושא": "הגישה למטופל עם חשד לבעיה ראומטולוגית", "מרצה": "דר' אמיר ביבר", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1tzJEGKxl_qJGGYNuqyq0zX9O3QYw_voS/view?usp=drive_link"}, {"תאריך": "02-04-2024", "נושא": "רפואת עור - לישמניה ופטריית שמש", "מרצה": "דר' נדב אסטמן", "מוקלט": true, "קישור": "https://drive.google.com/file/d/1pZUv0CK970sFvdo977UAsN3irCRmPFTU/view?usp=drive_link"}, {"תאריך": "17-04-2024", "נושא": "מושגים בסיסיים באלרגיה", "מרצה": "דר' יוליה ליפשיץ", "מוקלט": true, "קישור": NaN}, {"תאריך": "30-04-2024", "נושא": "רפואת עור - גזזת סקביאס ואקנה", "מרצה": "דר' נדב אסטמן", "מוקלט": true, "קישור": NaN}, {"תאריך": "16-07-2024", "נושא": "חלאסרטן", "מרצה": "ארגון חלאסרטן", "מוקלט": true, "קישור": NaN}, {"תאריך": "31-07-2024", "נושא": "הפרעות שינה", "מרצה": "דר' נועה גולדשר", "מוקלט": true, "קישור": NaN}, {"תאריך": "03-09-2024", "נושא": "חדשנות רפואית", "מרצה": "זיו רונן", "מוקלט": true, "קישור": NaN}, {"תאריך": "17-09-2024", "נושא": "ענף שירותי רפואה", "מרצה": NaN, "מוקלט": true, "קישור": NaN}, {"תאריך": "08-10-2024", "נושא": "סוכרת", "מרצה": "דר' חן ארבל", "מוקלט": true, "קישור": NaN}, {"תאריך": "15-10-2024", "נושא": "מקרים ברפואת עיניים", "מרצה": "דר' דן הלר", "מוקלט": true, "קישור": NaN}, {"תאריך": "29-10-2024", "נושא": "אבחנה מבדלת - לפעמים זו פתולוגיה דנטאלית", "מרצה": "טליה בקר", "מוקלט": true, "קישור": NaN}, {"תאריך": "12-11-2024", "נושא": "גישה לאבחון וטיפול בממאירות ריאה", "מרצה": "יבגני גרשמן", "מוקלט": false, "קישור": NaN}, {"תאריך": "26-11-2024", "נושא": "אמצעי מניעה", "מרצה": "גילית קליגון", "מוקלט": true, "קישור": NaN}, {"תאריך": "11-12-2024", "נושא": "נפרולוגיה במרפאה צבאית", "מרצה": "דר' שרון אוחיון כהן", "מוקלט": true, "קישור": NaN}, {"תאריך": "24-12-2024", "נושא": "הפרעות בהשתנה", "מרצה": "אלכס גרינשטיין", "מוקלט": true, "קישור": NaN}, {"תאריך": "07-01-2025", "נושא": "התמחות ברפואה תעסוקתית", "מרצה": "עמנואל סירא", "מוקלט": true, "קישור": NaN}, {"תאריך": "22-01-2025", "נושא": "מכון מחקר נתונים", "מרצה": "איה ברדוגו", "מוקלט": true, "קישור": NaN}, {"תאריך": "04-02-2025", "נושא": "מצבים שכיחים באלרגיה", "מרצה": "יוליה ליפשיץ", "מוקלט": true, "קישור": NaN}, {"תאריך": "18-02-2025", "נושא": "הגישה לגוש צווארי", "מרצה": "קרן ברטל", "מוקלט": true, "קישור": NaN}, {"תאריך": "04-03-2025", "נושא": "טראומה אקוסטית - חרבות ברזל", "מרצה": "אורן זיו ומעין מנהיים", "מוקלט": true, "קישור": NaN}, {"תאריך": "01-04-2025", "נושא": "שר\"פ - מעבר למעבדות מכבי", "מרצה": "אלי פינצ'בסקי ודניאל כץ", "מוקלט": NaN, "קישור": NaN}, {"תאריך": "22-04-2025", "נושא": "כאב ברך", "מרצה": "יהונתן זינגר", "מוקלט": NaN, "קישור": NaN}];
+    const container = document.getElementById('cards');
+
+    
+const searchBox = document.getElementById('searchBox');
+const monthFilter = document.getElementById('monthFilter');
+const yearFilter = document.getElementById('yearFilter');
+
+const months = [...new Set(data.map(d => (d["תאריך"] || "").split("-")[1]).filter(m => m))];
+months.sort((a, b) => parseInt(a) - parseInt(b));
+months.forEach(m => {
+  const opt = document.createElement('option');
+  opt.value = m;
+  opt.textContent = m;
+  monthFilter.appendChild(opt);
+});
+
+const years = [...new Set(data.map(d => (d["תאריך"] || "").split("-")[2]).filter(y => y))];
+years.sort();
+years.forEach(y => {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  yearFilter.appendChild(opt);
+});
+
+function renderFiltered() {
+  const query = searchBox.value.toLowerCase();
+  const month = monthFilter.value;
+  const year = yearFilter.value;
+  container.innerHTML = '';
+
+  data.forEach(item => {
+    if (
+      (query && !(item["נושא"]?.toLowerCase().includes(query) || item["מרצה"]?.toLowerCase().includes(query)))
+      || (month && !(item["תאריך"] || "").includes(`-${month}-`))
+      || (year && !(item["תאריך"] || "").endsWith(year))
+    ) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    let fileId = '';
+    if (item["קישור"]) {
+      const match = item["קישור"].match(/[-\w]{25,}/);
+      if (match) fileId = match[0];
     }
-    function normalizeDateString(str) {
-      const parts = str.includes('-') ? str.split('-') : str.split('/');
-      if (parts.length === 2) parts.push('2025');
-      if (parts.length === 3) {
-        const [d, m, y] = parts;
-        const year = y.length === 2 ? (y > 50 ? '19' + y : '20' + y) : y;
-        return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${year}`;
-      }
-      return '';
+    const img = document.createElement('img');
+    img.src = fileId ? `https://drive.google.com/thumbnail?id=${fileId}` : 'https://via.placeholder.com/320x180?text=No+Preview';
+    card.appendChild(img);
+
+    const title = document.createElement('div');
+    title.className = 'title';
+    title.textContent = item["נושא"];
+    card.appendChild(title);
+
+    const date = document.createElement('div');
+    date.className = 'date';
+    date.textContent = "📅 " + (item["תאריך"] || "ללא תאריך");
+    card.appendChild(date);
+
+    const lecturer = document.createElement('div');
+    lecturer.className = 'lecturer';
+    lecturer.textContent = "מרצה: " + (item["מרצה"] || "לא צויין");
+    card.appendChild(lecturer);
+
+    const icon = document.createElement('span');
+    icon.className = 'icon';
+    if (item["מוקלט"] && item["מוקלט"].toString().includes("כן") && fileId) {
+      icon.textContent = '👁️';
+      icon.title = 'צפה בהרצאה';
+      icon.style.cursor = 'pointer';
+      icon.onclick = () => {
+        const iframe = document.querySelector('#videoModal iframe');
+        iframe.src = `https://drive.google.com/file/d/${fileId}/preview`;
+        document.getElementById('videoModal').style.display = 'block';
+      };
+    } else {
+      icon.textContent = '❌';
+      icon.title = 'אין הקלטה';
     }
+    card.appendChild(icon);
 
-    const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=Sheet1`;
-
-    fetch(url)
-      .then(res => res.text())
-      .then(text => {
-        const json = JSON.parse(text.substring(47).slice(0, -2));
-        const rows = json.table.rows;
-        const grid = document.getElementById("lectureGrid");
-        grid.innerHTML = "";
-        rows.slice(1).forEach((row) => {
-          console.log("Col B raw:", row.c[1]);
-          if (!row.c || !row.c[1]) return;
-
-          const dateCell = row.c[0];
-          let rawDate = dateCell?.f || dateCell?.v || '';
-          let date = '';
-          if (typeof rawDate === 'string') {
-            if (rawDate.includes('Date(')) {
-              date = parseGoogleDate(rawDate);
-            } else {
-              date = normalizeDateString(rawDate);
-            }
-          }
-
-          const topic = row.c[1]?.v || "";
-          const lecturer = row.c[2]?.v || "";
-          let videoLink = null;
-if (row.c[1]?.f?.includes("HYPERLINK")) {
-  videoLink = row.c[1].f.match(/"(https[^"]+)"/)?.[1];
-} else if (typeof row.c[1]?.v === 'string' && row.c[1].v.includes('href')) {
-  videoLink = row.c[1].v.match(/href="([^"]+)"/)?.[1];
+    container.appendChild(card);
+  });
 }
 
-          const card = document.createElement("div");
-          card.className = "card";
+searchBox.oninput = renderFiltered;
+monthFilter.onchange = renderFiltered;
+yearFilter.onchange = renderFiltered;
 
-          const dateDiv = document.createElement("div");
-          dateDiv.textContent = '📅 ' + date;
-          card.appendChild(dateDiv);
+renderFiltered();
 
-          const title = document.createElement("div");
-          title.className = "title";
-          title.textContent = topic;
-          card.appendChild(title);
+      const card = document.createElement('div');
+      card.className = 'card';
 
-          const lect = document.createElement("div");
-          lect.className = "lecturer";
-          lect.textContent = `מרצה: ${lecturer}`;
-          card.appendChild(lect);
+      // Image or placeholder
+      let fileId = '';
+      if (item["קישור"]) {
+        const match = item["קישור"].match(/[-\w]{25,}/);
+        if (match) fileId = match[0];
+      }
+      const img = document.createElement('img');
+      img.src = fileId ? `https://drive.google.com/thumbnail?id=${fileId}` : 'https://via.placeholder.com/320x180?text=No+Preview';
+      card.appendChild(img);
 
-          if (videoLink) {
-            const eye = document.createElement("div");
-            eye.className = "eye";
-            eye.textContent = "👁️";
-            eye.onclick = () => window.open(videoLink, '_blank');
-            card.appendChild(eye);
-          } else {
-            const x = document.createElement("div");
-            x.className = "no-video";
-            x.textContent = "❌";
-            card.appendChild(x);
-          }
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = item["נושא"];
+      card.appendChild(title);
 
-          grid.appendChild(card);
-        });
-      });
+      const date = document.createElement('div');
+      date.className = 'date';
+      date.textContent = "📅 " + (item["תאריך"] || "ללא תאריך");
+      card.appendChild(date);
+
+      const lecturer = document.createElement('div');
+      lecturer.className = 'lecturer';
+      lecturer.textContent = "מרצה: " + (item["מרצה"] || "לא צויין");
+      card.appendChild(lecturer);
+
+      const icon = document.createElement('a');
+      icon.className = 'icon';
+      if (item["מוקלט"] && item["מוקלט"].toString().includes("כן") && fileId) {
+        icon.href = `https://drive.google.com/file/d/${fileId}/preview`;
+        icon.target = '_blank';
+        icon.textContent = '👁️';
+        icon.title = 'צפה בהרצאה';
+      } else {
+        icon.textContent = '❌';
+        icon.title = 'אין הקלטה';
+      }
+      card.appendChild(icon);
+
+      container.appendChild(card);
+    });
   </script>
 </body>
 </html>
