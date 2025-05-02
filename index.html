@@ -2,6 +2,8 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+
   <meta charset="UTF-8" />
   <title>הרצאות מוקלטות - משר"פ</title>
   <style>
@@ -16,7 +18,7 @@
       align-items: center;
       justify-content: center;
       gap: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     header img {
       height: 90px;
@@ -26,6 +28,16 @@
       color: #004d66;
       margin: 0;
       text-align: center;
+    }
+    .zoom-link {
+      text-align: center;
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .zoom-link a {
+      color: #0077cc;
+      font-weight: bold;
+      text-decoration: none;
     }
     .grid {
       display: grid;
@@ -71,14 +83,10 @@
       gap: 10px;
       align-items: center;
     }
-    .card-icons span {
-      font-size: 20px;
-      cursor: default;
-    }
+    .card-icons span,
     .card-icons a {
-      text-decoration: none;
       font-size: 20px;
-      cursor: pointer;
+      text-decoration: none;
     }
   </style>
 </head>
@@ -88,6 +96,7 @@
     <h1>הרצאות מוקלטות - משר"פ</h1>
   </header>
 
+  <div class="zoom-link" id="zoomLink">🔄 טוען קישור זום קבוע...</div>
   <div class="grid" id="lectureGrid"></div>
 
   <script>
@@ -105,6 +114,13 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substr(47).slice(0, -2));
+        const zoomRaw = json.table.rows[0]?.c[0]?.f || "";
+        const zoomMatch = zoomRaw.match(/HYPERLINK\("([^"]+)"/);
+        const zoomLink = zoomMatch ? zoomMatch[1] : null;
+        document.getElementById("zoomLink").innerHTML = zoomLink
+          ? `📌 <strong>קישור קבוע להרצאות זום:</strong> <a href="${zoomLink}" target="_blank">לחץ כאן להצטרפות</a>`
+          : '❌ קישור קבוע לא נמצא';
+
         const rows = json.table.rows.slice(2);
         const grid = document.getElementById('lectureGrid');
 
@@ -133,7 +149,9 @@
               <div class="card-date">📅 ${date}</div>
               <div class="card-lecturer">👨‍⚕️ ${lecturer}</div>
               <div class="card-icons">
-                ${recorded ? `<a href="${link}" target="_blank" title="צפייה בהרצאה">👁️</a>` : '<span title="אין הקלטה">❌</span>'}
+                ${recorded && link
+                  ? `<a href="${link}" target="_blank" title="צפייה בהרצאה">👁️</a>`
+                  : '<span title="אין הקלטה">❌</span>'}
               </div>
             </div>
           `;
