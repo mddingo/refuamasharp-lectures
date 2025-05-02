@@ -2,17 +2,14 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>הרצאות מוקלטות - משר"פ</title>
-  <script src="https://unpkg.com/ag-grid-community@28.2.1/dist/ag-grid-community.min.noStyle.js"></script>
-  <link href="https://unpkg.com/ag-grid-community@28.2.1/styles/ag-grid.css" rel="stylesheet" />
-  <link href="https://unpkg.com/ag-grid-community@28.2.1/styles/ag-theme-alpine.css" rel="stylesheet" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
       background-color: #f4f4f4;
       margin: 0;
+      padding: 20px;
     }
     header {
       display: flex;
@@ -30,39 +27,68 @@
       margin: 0;
       text-align: center;
     }
-    .zoom-link {
-      font-size: 16px;
-      margin-bottom: 20px;
-      text-align: center;
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
     }
-    .zoom-link a {
-      color: #0077cc;
-      font-weight: bold;
-      text-decoration: none;
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease;
     }
-    .ag-theme-alpine {
-      height: 750px;
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card img.thumbnail {
       width: 100%;
-      direction: rtl;
+      height: 160px;
+      object-fit: cover;
+      background-color: #ddd;
     }
-    .thumbnail {
-      width: 100px;
-      height: auto;
+    .card-content {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .card-date,
+    .card-lecturer {
+      font-size: 14px;
+      color: #333;
+    }
+    .card-icons {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .card-icons span {
+      font-size: 20px;
+      cursor: default;
+    }
+    .card-icons a {
+      text-decoration: none;
+      font-size: 20px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
   <header>
-    <img src="לוגו משרפ.png" alt="לוגו משרפ">
+    <img src="לוגו משרפ.png" alt="לוגו משרפ" />
     <h1>הרצאות מוקלטות - משר"פ</h1>
   </header>
 
-  <div class="zoom-link" id="zoomLink">
-    🔄 טוען קישור זום קבוע...
-  </div>
-
-  <select id="pageSizeSelector" style="margin: 10px;"></select>
-  <div id="myGrid" class="ag-theme-alpine"></div>
+  <div class="grid" id="lectureGrid"></div>
 
   <script>
     const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
@@ -79,89 +105,40 @@
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substr(47).slice(0, -2));
+        const rows = json.table.rows.slice(2);
+        const grid = document.getElementById('lectureGrid');
 
-        const zoomRaw = json.table.rows[0]?.c[0]?.f || "";
-        const zoomMatch = zoomRaw.match(/HYPERLINK\("([^"]+)"/);
-        const zoomLink = zoomMatch ? zoomMatch[1] : null;
-        document.getElementById("zoomLink").innerHTML = zoomLink
-          ? `📌 <strong>קישור קבוע להרצאות זום:</strong> <a href="${zoomLink}" target="_blank">לחץ כאן להצטרפות</a>`
-          : '❌ קישור קבוע לא נמצא';
-
-        const rows = json.table.rows.slice(2).map(row => {
+        rows.forEach(row => {
           const rawDate = row.c[0]?.v || '';
           const dateObj = new Date(rawDate);
           const date = isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleDateString("he-IL");
           const title = row.c[1]?.v || '';
           const lecturer = row.c[2]?.v || '';
           const recorded = row.c[3]?.v ? true : false;
-          const fField = row.c[1] && typeof row.c[1].f === 'string' ? row.c[1].f : '';
+          const fField = row.c[1]?.f || '';
           const link = recorded && hyperlinkRegex.test(fField)
             ? fField.match(hyperlinkRegex)[1]
             : null;
           const driveId = link ? extractDriveId(link) : null;
           const thumbnail = driveId
             ? `https://drive.google.com/thumbnail?id=${driveId}`
-            : 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Video_icon2.svg/120px-Video_icon2.svg.png';
+            : 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Video_icon2.svg/320px-Video_icon2.svg.png';
 
-          return { date, title, lecturer, recorded, link, thumbnail };
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <img class="thumbnail" src="${thumbnail}" alt="thumbnail" />
+            <div class="card-content">
+              <div class="card-title">${title}</div>
+              <div class="card-date">📅 ${date}</div>
+              <div class="card-lecturer">👨‍⚕️ ${lecturer}</div>
+              <div class="card-icons">
+                ${recorded ? `<a href="${link}" target="_blank" title="צפייה בהרצאה">👁️</a>` : '<span title="אין הקלטה">❌</span>'}
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
         });
-
-        const gridOptions = {
-          columnDefs: [
-            { headerName: 'תאריך', field: 'date', filter: true, sortable: true, width: 130 },
-            {
-              headerName: 'תמונה',
-              field: 'thumbnail',
-              width: 120,
-              cellRenderer: params =>
-                `<img src="${params.value}" class="thumbnail" alt="thumbnail">`
-            },
-            {
-              headerName: 'נושא הרצאה',
-              field: 'title',
-              flex: 2,
-              cellRenderer: params =>
-                params.data.link
-                  ? `<a href="${params.data.link}" target="_blank">${params.value}</a>`
-                  : params.value
-            },
-            { headerName: 'שם מרצה', field: 'lecturer', flex: 1 },
-            {
-              headerName: 'צפייה',
-              field: 'link',
-              width: 100,
-              cellRenderer: params =>
-                params.value ? `<a href="${params.value}" target="_blank">🎥</a>` : '—'
-            }
-          ],
-          rowData: rows,
-          pagination: true,
-          paginationPageSize: 20,
-          defaultColDef: {
-            resizable: true,
-            filter: true,
-            sortable: true
-          },
-          onGridReady: (params) => {
-            const selector = document.getElementById('pageSizeSelector');
-            [20, 40, 100].forEach(size => {
-              const opt = document.createElement('option');
-              opt.value = size;
-              opt.text = `הצג ${size} שורות`;
-              selector.appendChild(opt);
-            });
-            selector.value = 20;
-            selector.addEventListener('change', e => {
-              params.api.paginationSetPageSize(Number(e.target.value));
-            });
-          },
-          localeText: {
-            noRowsToShow: 'אין שורות להצגה',
-            searchOoo: 'חיפוש...',
-          }
-        };
-
-        new agGrid.Grid(document.getElementById('myGrid'), gridOptions);
       });
   </script>
 </body>
