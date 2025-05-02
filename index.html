@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -57,26 +58,29 @@
           const title = row.c[1]?.v || '';
           const lecturer = row.c[2]?.v || '';
           const recorded = row.c[3]?.v ? true : false;
-          return {
-            date,
-            title,
-            lecturer,
-            recorded,
-            link: recorded && row.c[1] && typeof row.c[1].f === 'string' 
-  		? row.c[1].f.match(/https?:\/\/[^\s"]+/)?.[0] 
-		: null
-          };
+          const link = recorded && row.c[1] && typeof row.c[1].f === 'string'
+            ? row.c[1].f.match(/https?:\/\/[^\s"]+/)?.[0]
+            : null;
+          return { date, title, lecturer, recorded, link };
         });
 
         const gridOptions = {
           columnDefs: [
             { headerName: 'תאריך', field: 'date', filter: 'agDateColumnFilter' },
-            { headerName: 'נושא הרצאה', field: 'title', flex: 2,
+            {
+              headerName: 'נושא הרצאה',
+              field: 'title',
+              flex: 2,
               cellRenderer: params =>
                 params.data.link ? `<a href="${params.data.link}" target="_blank">${params.value}</a>` : params.value
             },
             { headerName: 'שם מרצה', field: 'lecturer', flex: 1 },
-            { headerName: 'מוקלט', field: 'recorded', filter: true, cellRenderer: params => params.value ? '✔️' : '❌' }
+            {
+              headerName: 'מוקלט',
+              field: 'recorded',
+              filter: true,
+              cellRenderer: params => params.value ? '✔️' : '❌'
+            }
           ],
           rowData: rows,
           defaultColDef: {
