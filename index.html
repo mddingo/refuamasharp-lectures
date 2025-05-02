@@ -2,10 +2,9 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
-
   <meta charset="UTF-8" />
   <title>הרצאות מוקלטות - משר"פ</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -32,12 +31,20 @@
     .zoom-link {
       text-align: center;
       font-size: 16px;
-      margin-bottom: 20px;
+      margin: 10px 0 30px;
     }
     .zoom-link a {
       color: #0077cc;
       font-weight: bold;
       text-decoration: none;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .controls select {
+      padding: 5px;
+      font-size: 14px;
     }
     .grid {
       display: grid;
@@ -87,6 +94,24 @@
     .card-icons a {
       font-size: 20px;
       text-decoration: none;
+      cursor: pointer;
+    }
+    #videoModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #videoModal video {
+      max-width: 90%;
+      max-height: 80vh;
+    }
+    #videoModal.close {
+      display: none;
     }
   </style>
 </head>
@@ -97,67 +122,100 @@
   </header>
 
   <div class="zoom-link" id="zoomLink">🔄 טוען קישור זום קבוע...</div>
+
+  <div class="controls">
+    <label for="cardCount">הצג:</label>
+    <select id="cardCount">
+      <option value="20">20 הרצאות</option>
+      <option value="40">40 הרצאות</option>
+      <option value="100">100 הרצאות</option>
+      <option value="all">הכול</option>
+    </select>
+  </div>
+
   <div class="grid" id="lectureGrid"></div>
+
+  <div id="videoModal" onclick="this.style.display='none'">
+    <video id="videoPlayer" controls autoplay></video>
+  </div>
 
   <script>
     const sheetId = '16ihzH5s86uRcgTmwoXK0yd96-g_kZDuJ';
-    const sheetName = 'Sheet1';
-    const base = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${sheetName}`;
-    const hyperlinkRegex = /HYPERLINK\("([^"]+)"/;
+    const base = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=Sheet1`;
+    const regex = /HYPERLINK\("([^"]+)"/;
+    const grid = document.getElementById("lectureGrid");
+    const videoModal = document.getElementById("videoModal");
+    const videoPlayer = document.getElementById("videoPlayer");
 
-    function extractDriveId(link) {
-      const match = link.match(/\/d\/([a-zA-Z0-9_-]+)\/view/);
-      return match ? match[1] : null;
+    function extractDriveId(url) {
+      const m = url.match(/\/d\/([\w-]+)\/view/);
+      return m ? m[1] : null;
     }
 
     fetch(base)
       .then(res => res.text())
       .then(text => {
         const json = JSON.parse(text.substr(47).slice(0, -2));
-        const zoomRaw = json.table.rows[0]?.c[0]?.f || "";
-        const zoomMatch = zoomRaw.match(/HYPERLINK\("([^"]+)"/);
+        const rows = json.table.rows;
+        const zoomRaw = rows[0]?.c[0]?.f || "";
+        const zoomMatch = zoomRaw.match(regex);
         const zoomLink = zoomMatch ? zoomMatch[1] : null;
+
         document.getElementById("zoomLink").innerHTML = zoomLink
-          ? `📌 <strong>קישור קבוע להרצאות זום:</strong> <a href="${zoomLink}" target="_blank">לחץ כאן להצטרפות</a>`
+          ? `📌 <strong>קישור קבוע לזום:</strong> <a href="${zoomLink}" target="_blank">לחץ כאן להצטרפות</a>`
           : '❌ קישור קבוע לא נמצא';
 
-        const rows = json.table.rows.slice(2);
-        const grid = document.getElementById('lectureGrid');
-
-        rows.forEach(row => {
-          const rawDate = row.c[0]?.v || '';
-          const dateObj = new Date(rawDate);
-          const date = isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleDateString("he-IL");
+        const data = rows.slice(2).map(row => {
+          const dateVal = row.c[0]?.v;
+          const date = dateVal ? new Date(dateVal).toLocaleDateString('he-IL') : '';
           const title = row.c[1]?.v || '';
           const lecturer = row.c[2]?.v || '';
           const recorded = row.c[3]?.v ? true : false;
           const fField = row.c[1]?.f || '';
-          const link = recorded && hyperlinkRegex.test(fField)
-            ? fField.match(hyperlinkRegex)[1]
-            : null;
+          const link = regex.test(fField) ? fField.match(regex)[1] : null;
           const driveId = link ? extractDriveId(link) : null;
           const thumbnail = driveId
             ? `https://drive.google.com/thumbnail?id=${driveId}`
             : 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Video_icon2.svg/320px-Video_icon2.svg.png';
-
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `
-            <img class="thumbnail" src="${thumbnail}" alt="thumbnail" />
-            <div class="card-content">
-              <div class="card-title">${title}</div>
-              <div class="card-date">📅 ${date}</div>
-              <div class="card-lecturer">👨‍⚕️ ${lecturer}</div>
-              <div class="card-icons">
-                ${recorded && link
-                  ? `<a href="${link}" target="_blank" title="צפייה בהרצאה">👁️</a>`
-                  : '<span title="אין הקלטה">❌</span>'}
-              </div>
-            </div>
-          `;
-          grid.appendChild(card);
+          return { title, date, lecturer, recorded, link, thumbnail };
         });
+
+        function renderCards(limit) {
+          grid.innerHTML = '';
+          const items = limit === 'all' ? data : data.slice(0, limit);
+          items.forEach(({ title, date, lecturer, recorded, link, thumbnail }) => {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+              <img class="thumbnail" src="${thumbnail}" alt="תצוגה">
+              <div class="card-content">
+                <div class="card-title">${title}</div>
+                <div class="card-date">📅 ${date}</div>
+                <div class="card-lecturer">👨‍⚕️ ${lecturer}</div>
+                <div class="card-icons">
+                  ${
+                    recorded && link
+                      ? `<a title="צפייה" onclick="event.stopPropagation(); showVideo('${link}')">👁️</a>`
+                      : '<span title="אין הקלטה">❌</span>'
+                  }
+                </div>
+              </div>
+            `;
+            grid.appendChild(card);
+          });
+        }
+
+        renderCards(20);
+        document.getElementById("cardCount").onchange = e => renderCards(e.target.value);
       });
+
+    function showVideo(link) {
+      const id = extractDriveId(link);
+      if (id) {
+        videoPlayer.src = `https://drive.google.com/uc?export=preview&id=${id}`;
+        videoModal.style.display = 'flex';
+      }
+    }
   </script>
 </body>
 </html>
